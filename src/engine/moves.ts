@@ -3,13 +3,13 @@ import {
   Cell, Player, Direction, Phase,
   type Coord, type Move, type PlacementMove, type SwapMove,
   type GameState, type Board,
-} from './types.js';
+} from './types';
 import {
   emptyBoard, setCell, getCell, inBounds,
   stoneFor, claimedFor, emptyCells, emptyCellCount,
-} from './board.js';
-import { computeZobristHash, updateZobristCell, toggleSideToMove } from './zobrist.js';
-import { ALL_DIRECTIONS } from './rules.config.js';
+} from './board';
+import { computeZobristHash, updateZobristCell, toggleSideToMove } from './zobrist';
+import { ALL_DIRECTIONS } from './rules.config';
 
 // ─── Direction deltas ──────────────────────────────────────────────────────
 const DELTA: Record<Direction, { dr: number; dc: number }> = {

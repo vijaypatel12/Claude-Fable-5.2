@@ -12,7 +12,7 @@ import {
   scores, winner,
   encode, decode, encodeMove, decodeMove,
   computeZobristHash,
-} from '../engine/index.js';
+} from '../engine/index';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS

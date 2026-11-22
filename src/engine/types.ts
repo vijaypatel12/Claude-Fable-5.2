@@ -1,5 +1,5 @@
 // ─── Cell States ───────────────────────────────────────────────────────────
-export const enum Cell {
+export enum Cell {
   Empty        = 0,
   WhiteStone   = 1,
   BlackStone   = 2,
@@ -8,13 +8,13 @@ export const enum Cell {
 }
 
 // ─── Players ───────────────────────────────────────────────────────────────
-export const enum Player {
+export enum Player {
   White = 1,
   Black = 2,
 }
 
 // ─── Directions ────────────────────────────────────────────────────────────
-export const enum Direction {
+export enum Direction {
   Up    = 'U',
   Down  = 'D',
   Left  = 'L',
@@ -43,7 +43,7 @@ export interface SwapMove {
 export type Move = PlacementMove | SwapMove;
 
 // ─── Game phase ────────────────────────────────────────────────────────────
-export const enum Phase {
+export enum Phase {
   WhiteFirst   = 'WHITE_FIRST',   // White's opening move
   PieResponse  = 'PIE_RESPONSE',  // Black decides: play or swap
   Normal       = 'NORMAL',        // Standard alternating play

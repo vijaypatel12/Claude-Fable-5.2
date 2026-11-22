@@ -4,9 +4,9 @@
 import {
   Cell, Player, Phase, Direction,
   type GameState, type Move, type PlacementMove,
-} from './types.js';
-import { BOARD_ROWS, BOARD_COLS } from './rules.config.js';
-import { computeZobristHash } from './zobrist.js';
+} from './types';
+import { BOARD_ROWS, BOARD_COLS } from './rules.config';
+import { computeZobristHash } from './zobrist';
 
 // ─── Cell encoding ─────────────────────────────────────────────────────────
 const CELL_CHARS: Record<number, string> = {

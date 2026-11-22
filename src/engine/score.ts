@@ -1,6 +1,6 @@
 // ─── Scoring ───────────────────────────────────────────────────────────────
-import { Cell, Player, type Board, type Scores } from './types.js';
-import { BOARD_ROWS, BOARD_COLS } from './rules.config.js';
+import { Cell, Player, type Board, type Scores } from './types';
+import { BOARD_ROWS, BOARD_COLS } from './rules.config';
 
 /**
  * Count each player's score.

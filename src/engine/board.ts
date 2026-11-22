@@ -1,6 +1,6 @@
 // ─── Board utilities ───────────────────────────────────────────────────────
-import { Cell, Player, type Board, type Coord } from './types.js';
-import { BOARD_ROWS, BOARD_COLS } from './rules.config.js';
+import { Cell, Player, type Board, type Coord } from './types';
+import { BOARD_ROWS, BOARD_COLS } from './rules.config';
 
 /**
  * Create a fresh empty board.
