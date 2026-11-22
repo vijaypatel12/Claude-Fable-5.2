@@ -24,9 +24,9 @@ export function HomeScreen() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
       {/* Logo */}
-      <div className="mb-10 text-center">
+      <div className="mb-8 text-center">
         <h1
           className="text-6xl md:text-7xl font-bold tracking-wider text-stoneBlack mb-2"
           style={{ fontFamily: "'Cormorant Garamond', serif" }}
@@ -42,39 +42,48 @@ export function HomeScreen() {
       {!showSetup ? (
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <MenuButton onClick={() => { setMode('computer'); setShowSetup(true); }}>
-            Play vs Computer
+            <span className="flex items-center justify-center gap-2">
+              <span>🤖</span> Play vs Computer
+            </span>
           </MenuButton>
+
           <MenuButton onClick={() => { setMode('local'); setShowSetup(true); }}>
-            Play with a Friend
+            <span className="flex items-center justify-center gap-2">
+              <span>👥</span> Play with a Friend (2 Players)
+            </span>
           </MenuButton>
+
           <MenuButton onClick={handleTutorial}>
-            Interactive Tutorial
+            <span className="flex items-center justify-center gap-2">
+              <span>🎓</span> Interactive Tutorial
+            </span>
           </MenuButton>
+
           <MenuButton onClick={() => navigateTo('howtoplay')} secondary>
             How to Play
           </MenuButton>
         </div>
       ) : (
-        <div className="w-full max-w-xs animate-fade-in">
-          <div className="bg-white/60 backdrop-blur rounded-2xl p-6 shadow-lg border border-white/40">
-            <h2 className="text-lg font-semibold mb-4 text-center text-stoneBlack/80">
-              {mode === 'computer' ? 'vs Computer' : 'Local Game'}
+        <div className="w-full max-w-sm animate-fade-in">
+          <div className="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-xl border border-white/60">
+            <h2 className="text-xl font-bold mb-4 text-center text-stoneBlack" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              {mode === 'computer' ? 'Play vs Computer' : '2-Player Pass & Play'}
             </h2>
 
-            {mode === 'computer' && (
+            {mode === 'computer' ? (
               <>
-                <label className="block text-xs font-medium text-stoneBlack/60 uppercase tracking-wider mb-2">
-                  Difficulty
+                <label className="block text-xs font-semibold text-stoneBlack/60 uppercase tracking-wider mb-2">
+                  AI Difficulty
                 </label>
                 <div className="flex gap-2 mb-4">
                   {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
                     <button
                       key={d}
                       onClick={() => setDiff(d)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                         difficulty === d
-                          ? 'bg-warmGold text-white shadow-md'
-                          : 'bg-paper-dark/40 text-stoneBlack/60 hover:bg-paper-dark/60'
+                          ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                          : 'bg-paper-dark/40 text-stoneBlack/70 hover:bg-paper-dark/60'
                       }`}
                     >
                       {d}
@@ -82,54 +91,73 @@ export function HomeScreen() {
                   ))}
                 </div>
 
-                <label className="block text-xs font-medium text-stoneBlack/60 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-stoneBlack/60 uppercase tracking-wider mb-2">
                   Play as
                 </label>
                 <div className="flex gap-2 mb-5">
-                  {[{ label: 'White', value: Player.White }, { label: 'Black', value: Player.Black }].map(
-                    ({ label, value }) => (
-                      <button
-                        key={label}
-                        onClick={() => setColor(value)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                          color === value
-                            ? 'bg-warmGold text-white shadow-md'
-                            : 'bg-paper-dark/40 text-stoneBlack/60 hover:bg-paper-dark/60'
+                  {[
+                    { label: 'White (Moves 1st)', value: Player.White },
+                    { label: 'Black (Moves 2nd)', value: Player.Black },
+                  ].map(({ label, value }) => (
+                    <button
+                      key={label}
+                      onClick={() => setColor(value)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        color === value
+                          ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                          : 'bg-paper-dark/40 text-stoneBlack/70 hover:bg-paper-dark/60'
+                      }`}
+                    >
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full border ${
+                          value === Player.White
+                            ? 'bg-stoneWhite border-stoneWhite-dark shadow-sm'
+                            : 'bg-stoneBlack border-stoneBlack-light shadow-sm'
                         }`}
-                      >
-                        <span
-                          className={`w-4 h-4 rounded-full border ${
-                            value === Player.White
-                              ? 'bg-stoneWhite border-stoneWhite-dark'
-                              : 'bg-stoneBlack border-stoneBlack-light'
-                          }`}
-                        />
-                        {label}
-                      </button>
-                    ),
-                  )}
+                      />
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </>
+            ) : (
+              /* 2-Player Local Explanation Card */
+              <div className="space-y-3 mb-5 text-xs text-stone-700 bg-amber-50/60 p-4 rounded-xl border border-amber-200/60">
+                <div className="font-semibold text-sm text-stone-800 flex items-center gap-2">
+                  <span>🎮</span> Pass & Play Rules:
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-stoneWhite border border-stone-400 inline-block shrink-0 mt-0.5" />
+                  <span><strong>Player 1 (White):</strong> Takes the first turn on this board.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-stoneBlack border border-stone-600 inline-block shrink-0 mt-0.5" />
+                  <span><strong>Player 2 (Black):</strong> Plays next, and can choose the Pie Rule (Swap sides).</span>
+                </div>
+                <div className="text-stone-500 pt-1 border-t border-amber-200/50">
+                  Both players take turns on this same screen!
+                </div>
+              </div>
             )}
 
             <button
               onClick={handleStart}
-              className="w-full py-3 rounded-xl bg-stoneBlack text-white font-semibold text-sm hover:bg-stoneBlack-light transition-colors shadow-md"
+              className="w-full py-3.5 rounded-xl bg-stoneBlack text-white font-semibold text-sm hover:bg-stoneBlack-light transition-all shadow-md active:scale-98"
             >
-              Start Game
+              {mode === 'local' ? 'Start 2-Player Game' : 'Start Match'}
             </button>
             <button
               onClick={() => setShowSetup(false)}
-              className="w-full py-2 mt-2 text-sm text-stoneBlack/50 hover:text-stoneBlack/80 transition-colors"
+              className="w-full py-2.5 mt-2 text-xs font-semibold text-stoneBlack/50 hover:text-stoneBlack/80 transition-colors"
             >
-              ← Back
+              ← Back to Menu
             </button>
           </div>
         </div>
       )}
 
-      <p className="mt-16 text-xs text-stoneBlack/30">
-        An abstract strategy game of shadow and territory
+      <p className="mt-12 text-xs text-stoneBlack/35">
+        An abstract strategy board game of shadow and territory
       </p>
     </div>
   );
@@ -148,7 +176,7 @@ function MenuButton({
       className={`w-full py-3.5 rounded-xl font-medium text-sm transition-all shadow-sm hover:shadow-md active:scale-[0.98] ${
         secondary
           ? 'bg-white/40 text-stoneBlack/60 hover:bg-white/60 border border-white/30'
-          : 'bg-white/70 text-stoneBlack hover:bg-white/90 border border-white/50'
+          : 'bg-white/80 text-stoneBlack hover:bg-white border border-white/60 font-semibold'
       }`}
     >
       {children}
