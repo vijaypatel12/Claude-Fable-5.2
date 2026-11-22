@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>CHHAYA Game Demo & Video Tutorial</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes ripple {
+      0% { transform: scale(0.2); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .click-ripple {
+      animation: ripple 0.5s ease-out forwards;
+    }
+    @keyframes dropIn {
+      0% { transform: scale(0); opacity: 0; }
+      80% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .stone-drop {
+      animation: dropIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes shadowSweep {
+      0% { opacity: 0; transform: scale(0.7); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .shadow-anim {
+      animation: shadowSweep 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-stone-900 text-stone-100 antialiased p-3 sm:p-6 min-h-screen flex flex-col items-center justify-center select-none font-sans">
+  <div class="w-full max-w-[620px] space-y-3">
+    <!-- Header -->
+    <div class="text-center mb-2">
+      <h1 class="text-3xl font-bold font-serif tracking-wider text-amber-400">CHHAYA — Live Demo Video</h1>
+      <p class="text-xs text-stone-400">Interactive Animated Gameplay Tutorial (Hindi)</p>
+    </div>
+
+    <!-- Video Player Container -->
+    <div class="rounded-2xl border border-stone-700 bg-stone-800 shadow-2xl overflow-hidden">
+      
+      <!-- Video Header / Titlebar -->
+      <div class="flex items-center justify-between px-4 py-2.5 bg-black/60 text-white text-xs border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+          <span class="font-bold tracking-wide">CHHAYA Gameplay Walkthrough & Rules</span>
+        </div>
+        <div class="flex items-center gap-2 text-stone-300 font-mono text-[11px]">
+          <span id="time-display">0:00 / 0:45</span>
+          <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">1080p HD</span>
+        </div>
+      </div>
+
+      <!-- Video Screen Area -->
+      <div id="video-stage" class="relative w-full aspect-[16/10] bg-[#f5f0e8] overflow-hidden flex flex-col justify-between p-3 text-stone-900">
+        
+        <!-- Top Info in Game Screen -->
+        <div class="flex items-center justify-between px-2 pt-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-serif font-bold tracking-widest text-[#2d2d2d]">CHHAYA</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300/60" id="stage-mode">
+              2 Players · Pass & Play
+            </span>
+          </div>
+
+          <!-- Turn Badge -->
+          <div id="turn-badge" class="px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 shadow-sm transition-all bg-amber-50 border-amber-300 text-amber-900">
+            <span id="turn-dot" class="w-2.5 h-2.5 rounded-full bg-white border border-amber-400"></span>
+            <span id="turn-text">Player 1 (White)'s Turn</span>
+          </div>
+        </div>
+
+        <!-- Scores bar -->
+        <div class="mx-auto w-full max-w-[380px] px-2">
+          <div class="flex justify-between items-center text-[11px] font-bold text-stone-700 mb-1">
+            <span id="score-white">⚪ P1 White: 0</span>
+            <span id="score-black">⚫ P2 Black: 0</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-[#e6dcc8] overflow-hidden flex">
+            <div id="bar-white" class="h-full bg-gradient-to-r from-amber-100 to-amber-200 transition-all duration-500" style="width: 50%"></div>
+            <div id="bar-black" class="h-full bg-gradient-to-r from-stone-600 to-stone-900 transition-all duration-500" style="width: 50%"></div>
+          </div>
+        </div>
+
+        <!-- Board SVG -->
+        <div class="relative flex justify-center items-center my-auto">
+          <svg id="board-svg" viewBox="0 0 450 450" class="w-[280px] h-[280px] drop-shadow-md">
+            <rect width="450" height="450" rx="10" fill="#f1ebe0" stroke="#d4c8b0" stroke-width="2"/>
+            <g id="grid-layer"></g>
+            <g id="shadow-layer"></g>
+            <g id="stone-layer"></g>
+            <g id="ui-layer"></g>
+          </svg>
+        </div>
+
+        <!-- On-Screen Direction Picker Panel (Step 2) -->
+        <div id="direction-panel" class="hidden mx-auto w-full max-w-[400px] bg-white/95 rounded-xl p-2.5 shadow-lg border border-amber-300 text-center">
+          <div class="text-[11px] font-bold text-amber-800 mb-1.5 flex items-center justify-center gap-1">
+            <span class="bg-amber-100 px-1.5 py-0.2 rounded text-[10px]">STEP 2</span>
+            <span>Choose Shadow Direction:</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5">
+            <button id="btn-up" class="py-1 px-1.5 rounded-lg border text-[11px] font-semibold bg-stone-50 border-stone-200">⬆ Up <span class="text-[9px] text-amber-700 font-bold block" id="up-count">+0</span></button>
+            <button id="btn-down" class="py-1 px-1.5 rounded-lg border text-[11px] font-semibold bg-stone-50 border-stone-200">⬇ Down <span class="text-[9px] text-amber-700 font-bold block" id="down-count">+0</span></button>
+            <button id="btn-left" class="py-1 px-1.5 rounded-lg border text-[11px] font-semibold bg-stone-50 border-stone-200">⬅ Left <span class="text-[9px] text-amber-700 font-bold block" id="left-count">+0</span></button>
+            <button id="btn-right" class="py-1 px-1.5 rounded-lg border text-[11px] font-semibold bg-stone-50 border-stone-200">➡ Right <span class="text-[9px] text-amber-700 font-bold block" id="right-count">+0</span></button>
+          </div>
+        </div>
+
+        <!-- Pie Rule Popup Modal (Overlay) -->
+        <div id="pie-modal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-30">
+          <div class="bg-white rounded-2xl p-4 max-w-[280px] w-full text-center shadow-2xl border border-amber-300">
+            <div class="text-2xl mb-1">🥧</div>
+            <div class="text-sm font-bold text-stone-900 mb-1">Pie Rule (Swap Sides?)</div>
+            <div class="text-[11px] text-stone-600 mb-3 leading-tight">Player 1 ne pehla move chala. Player 2 kya sides swap karna chahta hai?</div>
+            <div class="flex gap-2">
+              <button id="pie-swap" class="flex-1 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-[11px]">🔄 Swap Sides</button>
+              <button id="pie-continue" class="flex-1 py-1.5 rounded-lg bg-stone-100 text-stone-800 font-bold text-[11px] border border-stone-300">▶ Continue (Black)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulated Hand/Mouse Cursor -->
+        <div id="cursor" class="absolute pointer-events-none transition-all duration-500 z-40" style="left: 50%; top: 85%;">
+          <svg class="w-6 h-6 drop-shadow-md text-stone-900 -rotate-12" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 0l16 12.279-6.951 1.17 4.325 8.817-3.596 1.734-4.35-8.879-5.428 5.428z"/>
+          </svg>
+          <div id="ripple" class="hidden absolute -top-2 -left-2 w-10 h-10 rounded-full border-2 border-amber-500 bg-amber-400/30 click-ripple"></div>
+        </div>
+
+        <!-- Subtitles in Hindi (Video Captions) -->
+        <div class="mt-auto px-3 py-2 bg-black/85 backdrop-blur rounded-xl text-center text-white text-xs font-medium border border-white/10 shadow-lg">
+          <span class="text-amber-400 font-bold mr-1">🎙️ Demo:</span>
+          <span id="subtitle-text">CHHAYA khelna shuru karein — White pehla move chalega!</span>
+        </div>
+
+      </div>
+
+      <!-- Video Controls Bar -->
+      <div class="p-3 bg-stone-800 border-t border-stone-700 space-y-2">
+        <!-- Scrubber Progress -->
+        <div class="relative w-full h-1.5 bg-stone-700 rounded-full cursor-pointer overflow-hidden" id="scrubber-bar">
+          <div id="scrubber-fill" class="h-full bg-amber-500 rounded-full transition-all duration-200" style="width: 0%"></div>
+        </div>
+
+        <!-- Play / Pause / Steps / Restart -->
+        <div class="flex items-center justify-between text-xs pt-1">
+          <div class="flex items-center gap-2">
+            <button id="btn-play" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all shadow-sm">
+              <span id="play-icon">▶</span>
+              <span id="play-label">Play Video</span>
+            </button>
+            <button id="btn-replay" class="px-2.5 py-1.5 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 font-semibold border border-stone-600">
+              ↺ Replay
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-prev" class="px-2 py-1 rounded bg-stone-700 hover:bg-stone-600 text-stone-200 text-[11px] font-semibold">⏮ Step</button>
+            <button id="btn-next" class="px-2 py-1 rounded bg-stone-700 hover:bg-stone-600 text-stone-200 text-[11px] font-semibold">Step ⏭</button>
+            <select id="speed-select" class="text-xs bg-stone-700 border border-stone-600 rounded px-1.5 py-1 font-mono text-stone-200">
+              <option value="1">1x Speed</option>
+              <option value="1.5">1.5x Fast</option>
+              <option value="0.75">0.75x Slow</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick controls guide -->
+    <div class="text-center text-xs text-stone-400 pt-2">
+      Link: <a href="/" class="text-amber-400 hover:underline">Play Live Game</a> · Code on <a href="https://github.com/vijaypatel12/Claude-Fable-5.2" target="_blank" class="text-amber-400 hover:underline">GitHub</a>
+    </div>
+  </div>
+
+  <script>
+    const GRID_SIZE = 7;
+    const CELL_PX = 60;
+    const PAD = 15;
+
+    const gridLayer = document.getElementById('grid-layer');
+    const shadowLayer = document.getElementById('shadow-layer');
+    const stoneLayer = document.getElementById('stone-layer');
+
+    const cursor = document.getElementById('cursor');
+    const ripple = document.getElementById('ripple');
+    const subtitle = document.getElementById('subtitle-text');
+    const timeDisplay = document.getElementById('time-display');
+    const scrubberFill = document.getElementById('scrubber-fill');
+
+    const turnBadge = document.getElementById('turn-badge');
+    const turnDot = document.getElementById('turn-dot');
+    const turnText = document.getElementById('turn-text');
+
+    const scoreWhite = document.getElementById('score-white');
+    const scoreBlack = document.getElementById('score-black');
+    const barWhite = document.getElementById('bar-white');
+    const barBlack = document.getElementById('bar-black');
+
+    const dirPanel = document.getElementById('direction-panel');
+    const pieModal = document.getElementById('pie-modal');
+    const btnPlay = document.getElementById('btn-play');
+    const playIcon = document.getElementById('play-icon');
+    const playLabel = document.getElementById('play-label');
+
+    function createGrid() {
+      gridLayer.innerHTML = '';
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', PAD + c * CELL_PX);
+          rect.setAttribute('y', PAD + r * CELL_PX);
+          rect.setAttribute('width', CELL_PX);
+          rect.setAttribute('height', CELL_PX);
+          rect.setAttribute('fill', '#faf6ee');
+          rect.setAttribute('stroke', '#d4c8b0');
+          rect.setAttribute('stroke-width', '0.8');
+          rect.id = `cell-${r}-${c}`;
+          gridLayer.appendChild(rect);
+        }
+      }
+    }
+    createGrid();
+
+    function cellCenter(r, c) {
+      return {
+        x: PAD + c * CELL_PX + CELL_PX / 2,
+        y: PAD + r * CELL_PX + CELL_PX / 2
+      };
+    }
+
+    function addStone(r, c, color) {
+      const { x, y } = cellCenter(r, c);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', 21);
+      circle.setAttribute('class', 'stone-drop');
+      if (color === 'white') {
+        circle.setAttribute('fill', '#f5eee3');
+        circle.setAttribute('stroke', '#c0ad91');
+        circle.setAttribute('stroke-width', '1.5');
+      } else {
+        circle.setAttribute('fill', '#2d2d2d');
+        circle.setAttribute('stroke', '#111');
+        circle.setAttribute('stroke-width', '1.5');
+      }
+      stoneLayer.appendChild(circle);
+    }
+
+    function addClaim(r, c, color) {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', PAD + c * CELL_PX + 2);
+      rect.setAttribute('y', PAD + r * CELL_PX + 2);
+      rect.setAttribute('width', CELL_PX - 4);
+      rect.setAttribute('height', CELL_PX - 4);
+      rect.setAttribute('rx', '4');
+      rect.setAttribute('class', 'shadow-anim');
+      rect.setAttribute('fill', color === 'white' ? '#e6d9c4' : '#7a736d');
+      shadowLayer.appendChild(rect);
+    }
+
+    function moveCursor(pctX, pctY, click = false, callback = null) {
+      cursor.style.left = pctX + '%';
+      cursor.style.top = pctY + '%';
+      if (click) {
+        setTimeout(() => {
+          ripple.classList.remove('hidden');
+          setTimeout(() => ripple.classList.add('hidden'), 500);
+          if (callback) callback();
+        }, 450);
+      } else if (callback) {
+        setTimeout(callback, 500);
+      }
+    }
+
+    function updateScores(w, b) {
+      scoreWhite.textContent = `⚪ P1 White: ${w}`;
+      scoreBlack.textContent = `⚫ P2 Black: ${b}`;
+      const total = w + b || 1;
+      const wPct = Math.round((w / total) * 100);
+      barWhite.style.width = wPct + '%';
+      barBlack.style.width = (100 - wPct) + '%';
+    }
+
+    let isPlaying = false;
+    let stepIndex = 0;
+    let timer = null;
+    let speed = 1;
+
+    const timeline = [
+      {
+        t: 0,
+        text: "CHHAYA ek 7x7 board ka territory strategy game hai. Har turn me 2 steps hote hain!",
+        action: () => {
+          shadowLayer.innerHTML = '';
+          stoneLayer.innerHTML = '';
+          dirPanel.classList.add('hidden');
+          pieModal.classList.add('hidden');
+          updateScores(0, 0);
+          turnText.textContent = "Player 1 (White)'s Turn";
+          turnBadge.className = "px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 shadow-sm bg-amber-50 border-amber-300 text-amber-900";
+          turnDot.className = "w-2.5 h-2.5 rounded-full bg-white border border-amber-400";
+          moveCursor(50, 80);
+        }
+      },
+      {
+        t: 4,
+        text: "Step 1: Player 1 (White) ne Row 3, Col 3 (Centre) par click karke stone chuna.",
+        action: () => {
+          moveCursor(50, 42, true, () => {
+            addStone(2, 2, 'white');
+            dirPanel.classList.remove('hidden');
+            document.getElementById('down-count').textContent = '+4';
+            document.getElementById('up-count').textContent = '+2';
+            document.getElementById('left-count').textContent = '+2';
+            document.getElementById('right-count').textContent = '+4';
+          });
+        }
+      },
+      {
+        t: 10,
+        text: "Step 2: Niche diye gaye direction buttons me se 'Down' (⬇) select kiya!",
+        action: () => {
+          moveCursor(48, 76, true, () => {
+            dirPanel.classList.add('hidden');
+            addClaim(3, 2, 'white');
+            addClaim(4, 2, 'white');
+            addClaim(5, 2, 'white');
+            addClaim(6, 2, 'white');
+            updateScores(5, 0);
+          });
+        }
+      },
+      {
+        t: 16,
+        text: "Turn pura hua! White ko mile 5 points (1 Stone + 4 Claimed cells).",
+        action: () => {
+          moveCursor(65, 80);
+        }
+      },
+      {
+        t: 20,
+        text: "Pie Rule: White ke pehle move par Black ko Swap ya Continue ka option mila.",
+        action: () => {
+          pieModal.classList.remove('hidden');
+          moveCursor(58, 55);
+        }
+      },
+      {
+        t: 24,
+        text: "Player 2 ne 'Continue (Black)' select kiya aur khel aage badhaya.",
+        action: () => {
+          moveCursor(62, 57, true, () => {
+            pieModal.classList.add('hidden');
+            turnText.textContent = "Player 2 (Black)'s Turn";
+            turnBadge.className = "px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 shadow-sm bg-stone-900 border-stone-700 text-stone-100";
+            turnDot.className = "w-2.5 h-2.5 rounded-full bg-stone-950 border border-stone-500";
+          });
+        }
+      },
+      {
+        t: 29,
+        text: "Player 2 (Black) ne Row 5, Col 4 par Stone rakha.",
+        action: () => {
+          moveCursor(62, 58, true, () => {
+            addStone(4, 4, 'black');
+            dirPanel.classList.remove('hidden');
+            document.getElementById('down-count').textContent = '+2';
+            document.getElementById('up-count').textContent = '+4';
+            document.getElementById('left-count').textContent = '+1';
+            document.getElementById('right-count').textContent = '+2';
+          });
+        }
+      },
+      {
+        t: 34,
+        text: "Player 2 ne 'Up' (⬆) button dabaya — Shadow ne 4 cells Black ke naam claim kiye!",
+        action: () => {
+          moveCursor(32, 76, true, () => {
+            dirPanel.classList.add('hidden');
+            addClaim(3, 4, 'black');
+            addClaim(2, 4, 'black');
+            addClaim(1, 4, 'black');
+            addClaim(0, 4, 'black');
+            updateScores(5, 5);
+          });
+        }
+      },
+      {
+        t: 39,
+        text: "Shadow Rule: Kisi stone ya claimed cell se shadow aage nahi ja sakti. Territory permanent hoti hai!",
+        action: () => {
+          moveCursor(50, 85);
+          turnText.textContent = "Player 1 (White)'s Turn";
+          turnBadge.className = "px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 shadow-sm bg-amber-50 border-amber-300 text-amber-900";
+          turnDot.className = "w-2.5 h-2.5 rounded-full bg-white border border-amber-400";
+        }
+      },
+      {
+        t: 43,
+        text: "🏆 Game End: Jab saare 49 cells bhar jate hain, jiske sabse jyada cells honge wo JEETEGA!",
+        action: () => {
+          moveCursor(50, 50);
+          pause();
+        }
+      }
+    ];
+
+    const TOTAL_TIME = 45;
+
+    function runStep(idx) {
+      if (idx >= timeline.length) {
+        pause();
+        return;
+      }
+      stepIndex = idx;
+      const current = timeline[idx];
+      subtitle.textContent = current.text;
+      current.action();
+
+      const pct = (current.t / TOTAL_TIME) * 100;
+      scrubberFill.style.width = pct + '%';
+      const m = Math.floor(current.t / 60);
+      const s = current.t % 60;
+      timeDisplay.textContent = `${m}:${s < 10 ? '0' : ''}${s} / 0:45`;
+
+      if (isPlaying && idx < timeline.length - 1) {
+        const next = timeline[idx + 1];
+        const delay = ((next.t - current.t) * 1000) / speed;
+        timer = setTimeout(() => runStep(idx + 1), delay);
+      }
+    }
+
+    function play() {
+      isPlaying = true;
+      playIcon.textContent = '⏸';
+      playLabel.textContent = 'Pause';
+      btnPlay.classList.replace('bg-amber-600', 'bg-stone-800');
+      runStep(stepIndex);
+    }
+
+    function pause() {
+      isPlaying = false;
+      playIcon.textContent = '▶';
+      playLabel.textContent = 'Play Video';
+      btnPlay.classList.replace('bg-stone-800', 'bg-amber-600');
+      if (timer) clearTimeout(timer);
+    }
+
+    btnPlay.addEventListener('click', () => {
+      if (isPlaying) pause();
+      else {
+        if (stepIndex >= timeline.length - 1) stepIndex = 0;
+        play();
+      }
+    });
+
+    document.getElementById('btn-replay').addEventListener('click', () => {
+      pause();
+      stepIndex = 0;
+      play();
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      pause();
+      if (stepIndex < timeline.length - 1) runStep(stepIndex + 1);
+    });
+
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      pause();
+      if (stepIndex > 0) runStep(stepIndex - 1);
+    });
+
+    document.getElementById('speed-select').addEventListener('change', (e) => {
+      speed = parseFloat(e.target.value);
+    });
+
+    setTimeout(play, 500);
+  </script>
+</body>
+</html>
