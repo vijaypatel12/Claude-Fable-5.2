@@ -177,11 +177,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // ── Pie Rule ──
   handlePieRule: (swap) => {
-    const { gameState, stateHistory } = get();
+    const { gameState, stateHistory, gameMode, humanColor } = get();
     if (swap) {
       const newState = applyMove(gameState, { kind: 'swap' });
+      const newHumanColor = gameMode === 'computer'
+        ? (humanColor === Player.White ? Player.Black : Player.White)
+        : humanColor;
+
       set({
         gameState: newState,
+        humanColor: newHumanColor,
         stateHistory: [...stateHistory, gameState],
         showPieRule: false,
       });
@@ -250,13 +255,17 @@ function afterMove(
 
   const { gameMode, humanColor } = get();
 
-  // Pie rule check
+    // Pie rule check
   if (state.phase === Phase.PieResponse) {
     if (gameMode === 'computer' && state.currentPlayer !== humanColor) {
       // AI decides pie rule
       if (shouldSwap(state, get().difficulty)) {
         const newState = applyMove(state, { kind: 'swap' });
-        set({ gameState: newState, stateHistory: [...get().stateHistory, state] });
+        set({
+          gameState: newState,
+          humanColor: Player.Black, // AI took White, human is now Black
+          stateHistory: [...get().stateHistory, state],
+        });
         afterMove(newState, set, get);
       } else {
         // AI plays normally — trigger AI move
@@ -298,8 +307,6 @@ function triggerAiMove(
       lastAiResult: result,
     });
 
-    if (isOver(newState)) {
-      set({ showGameOver: true });
-    }
+    afterMove(newState, set, get);
   }, 100);
 }

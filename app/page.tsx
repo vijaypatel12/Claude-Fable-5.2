@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useGameStore } from '../src/store/gameStore';
 import { HomeScreen } from '../src/components/HomeScreen';
 import { GameScreen } from '../src/components/GameScreen';
