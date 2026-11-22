@@ -49,7 +49,9 @@
         </div>
         <div class="flex items-center gap-2 text-stone-300 font-mono text-[11px]">
           <span id="time-display">0:00 / 0:45</span>
-          <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">1080p HD</span>
+          <button id="btn-download-top" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95">
+            <span>⬇ Download Video</span>
+          </button>
         </div>
       </div>
 
@@ -138,6 +140,9 @@
 
       </div>
 
+      <!-- Hidden canvas for recording video frames -->
+      <canvas id="record-canvas" width="800" height="500" class="hidden"></canvas>
+
       <!-- Video Controls Bar -->
       <div class="p-3 bg-stone-800 border-t border-stone-700 space-y-2">
         <!-- Scrubber Progress -->
@@ -146,7 +151,7 @@
         </div>
 
         <!-- Play / Pause / Steps / Restart -->
-        <div class="flex items-center justify-between text-xs pt-1">
+        <div class="flex items-center justify-between text-xs pt-1 flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <button id="btn-play" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all shadow-sm">
               <span id="play-icon">▶</span>
@@ -156,6 +161,11 @@
               ↺ Replay
             </button>
           </div>
+
+          <!-- Direct Download Video Button -->
+          <button id="btn-download-bottom" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-md active:scale-95">
+            <span>⬇ Download Video (.webm)</span>
+          </button>
 
           <div class="flex items-center gap-2">
             <button id="btn-prev" class="px-2 py-1 rounded bg-stone-700 hover:bg-stone-600 text-stone-200 text-[11px] font-semibold">⏮ Step</button>
@@ -479,6 +489,152 @@
     document.getElementById('speed-select').addEventListener('change', (e) => {
       speed = parseFloat(e.target.value);
     });
+
+    async function recordAndDownloadVideo() {
+      const btn = document.getElementById('btn-download-bottom');
+      const btnTop = document.getElementById('btn-download-top');
+      const origText = btn.innerHTML;
+      btn.innerHTML = '⏳ Preparing HD Video...';
+      btnTop.innerHTML = '⏳ Rendering...';
+      btn.disabled = true;
+
+      const canvas = document.getElementById('record-canvas');
+      const ctx = canvas.getContext('2d');
+
+      const stream = canvas.captureStream(30);
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      } catch (e) {
+        try {
+          recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        } catch (e2) {
+          recorder = new MediaRecorder(stream);
+        }
+      }
+
+      const chunks = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'CHHAYA-Gameplay-Demo.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        btn.innerHTML = '✅ Video Downloaded!';
+        btnTop.innerHTML = '✅ Downloaded!';
+        setTimeout(() => {
+          btn.innerHTML = origText;
+          btnTop.innerHTML = '⬇ Download Video';
+          btn.disabled = false;
+        }, 3000);
+      };
+
+      recorder.start();
+      pause();
+      stepIndex = 0;
+
+      function renderCanvasFrame() {
+        ctx.fillStyle = '#f5f0e8';
+        ctx.fillRect(0, 0, 800, 500);
+
+        ctx.fillStyle = '#2d2d2d';
+        ctx.font = 'bold 22px serif';
+        ctx.fillText('CHHAYA — Shadow Strategy Board Game', 30, 38);
+
+        ctx.fillStyle = '#b45309';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('PASS & PLAY (2 PLAYERS)', 30, 58);
+
+        ctx.fillStyle = turnText.textContent.includes('White') ? '#78350f' : '#1c1917';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(turnText.textContent, 550, 42);
+
+        ctx.fillStyle = '#44403c';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(scoreWhite.textContent, 550, 62);
+        ctx.fillText(scoreBlack.textContent, 680, 62);
+
+        const bx = 160, by = 80, bw = 320, cs = bw / 7;
+        ctx.fillStyle = '#f1ebe0';
+        ctx.fillRect(bx, by, bw, bw);
+        ctx.strokeStyle = '#d4c8b0';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, bw, bw);
+
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            ctx.strokeRect(bx + c * cs, by + r * cs, cs, cs);
+          }
+        }
+
+        const claims = shadowLayer.querySelectorAll('rect');
+        claims.forEach(rect => {
+          const rx = parseFloat(rect.getAttribute('x'));
+          const ry = parseFloat(rect.getAttribute('y'));
+          const c = Math.round((rx - 15) / 60);
+          const r = Math.round((ry - 15) / 60);
+          ctx.fillStyle = rect.getAttribute('fill');
+          ctx.fillRect(bx + c * cs + 2, by + r * cs + 2, cs - 4, cs - 4);
+        });
+
+        const stones = stoneLayer.querySelectorAll('circle');
+        stones.forEach(stone => {
+          const scx = parseFloat(stone.getAttribute('cx'));
+          const scy = parseFloat(stone.getAttribute('cy'));
+          const c = Math.round((scx - 15 - 30) / 60);
+          const r = Math.round((scy - 15 - 30) / 60);
+          const isWhite = stone.getAttribute('fill').includes('f5eee3');
+          ctx.beginPath();
+          ctx.arc(bx + c * cs + cs/2, by + r * cs + cs/2, cs * 0.36, 0, Math.PI * 2);
+          ctx.fillStyle = isWhite ? '#f5eee3' : '#2d2d2d';
+          ctx.fill();
+          ctx.strokeStyle = isWhite ? '#c0ad91' : '#111';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.roundRect ? ctx.roundRect(30, 425, 740, 50, 10) : ctx.fillRect(30, 425, 740, 50);
+        ctx.fill();
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('🎙️ Gameplay Demo:', 45, 455);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '500 13px sans-serif';
+        ctx.fillText(subtitle.textContent, 195, 455);
+      }
+
+      let frame = 0;
+      const totalFrames = 120;
+      const frameInterval = setInterval(() => {
+        const stepTarget = Math.floor((frame / totalFrames) * timeline.length);
+        if (stepTarget !== stepIndex && stepTarget < timeline.length) {
+          stepIndex = stepTarget;
+          timeline[stepIndex].action();
+          subtitle.textContent = timeline[stepIndex].text;
+        }
+        renderCanvasFrame();
+        frame++;
+
+        btn.innerHTML = `⏳ Exporting Video: ${Math.round((frame / totalFrames) * 100)}%`;
+        btnTop.innerHTML = `${Math.round((frame / totalFrames) * 100)}%`;
+
+        if (frame >= totalFrames) {
+          clearInterval(frameInterval);
+          setTimeout(() => recorder.stop(), 500);
+        }
+      }, 50);
+    }
+
+    document.getElementById('btn-download-bottom').addEventListener('click', recordAndDownloadVideo);
+    document.getElementById('btn-download-top').addEventListener('click', recordAndDownloadVideo);
 
     setTimeout(play, 500);
   </script>
