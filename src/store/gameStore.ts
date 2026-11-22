@@ -7,7 +7,7 @@ import {
   scores, winner, emptyCellCount,
   stoneFor, setCell, encodeMove,
 } from '../engine/index';
-import { computeAiMove, computeHint, shouldSwap, type Difficulty, type SearchResult } from '../ai/index';
+import { computeAiMove, computeHint, type Difficulty, type SearchResult } from '../ai/index';
 
 export type Screen = 'home' | 'game' | 'howtoplay';
 export type GameMode = 'computer' | 'local';
@@ -24,7 +24,7 @@ interface GameStore {
   // Game config
   gameMode: GameMode;
   difficulty: Difficulty;
-  humanColor: Player; // which color the human plays (vs computer)
+  humanColor: Player; // which color human plays (in computer mode)
 
   // Game state
   gameState: GameState;
@@ -41,7 +41,7 @@ interface GameStore {
   lastAiResult: SearchResult | null;
   hintMove: Move | null;
 
-  // Modals
+  // Modals / banners
   showPieRule: boolean;
   showGameOver: boolean;
 
@@ -61,7 +61,7 @@ interface GameStore {
 }
 
 function isHumanTurn(state: GameState, mode: GameMode, humanColor: Player): boolean {
-  if (mode === 'local') return true;
+  if (mode === 'local') return true; // Local mode: both players are human!
   return state.currentPlayer === humanColor;
 }
 
@@ -115,8 +115,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       showGameOver: false,
     });
 
-    // If AI goes first
-    if (mode === 'computer' && color !== Player.White) {
+    // If AI moves first (when human chose Black in vs computer)
+    if (mode === 'computer' && color === Player.Black) {
       triggerAiMove(set, get);
     }
   },
@@ -129,6 +129,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (isOver(gameState)) return;
     if (gameState.board[coord.row][coord.col] !== Cell.Empty) return;
 
+    // Calculate shadow claims for whoever's turn it is right now!
     const infos = computeDirectionInfos(gameState.board, coord, gameState.currentPlayer);
     set({
       selectedCell: coord,
@@ -136,6 +137,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       previewDirection: null,
       shadowPreviewCells: [],
       hintMove: null,
+      showPieRule: false, // If Player 2 clicks a cell, pie rule is implicitly dismissed
     });
   },
 
@@ -150,7 +152,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // ── Confirm Direction (click arrow) ──
   confirmDirection: (dir) => {
-    const { selectedCell, gameState, gameMode, humanColor, stateHistory } = get();
+    const { selectedCell, gameState, stateHistory } = get();
     if (!selectedCell) return;
 
     const move: PlacementMove = { kind: 'place', coord: selectedCell, direction: dir };
@@ -164,9 +166,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       previewDirection: null,
       shadowPreviewCells: [],
       hintMove: null,
+      showPieRule: false,
     });
 
-    // Post-move checks
+    // Trigger next turn
     afterMove(newState, set, get);
   },
 
@@ -175,10 +178,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ selectedCell: null, directionInfos: [], previewDirection: null, shadowPreviewCells: [] });
   },
 
-  // ── Pie Rule ──
+  // ── Pie Rule (Swap Sides) ──
   handlePieRule: (swap) => {
     const { gameState, stateHistory, gameMode, humanColor } = get();
-    if (swap) {
+    if (swap && gameState.phase === Phase.PieResponse) {
       const newState = applyMove(gameState, { kind: 'swap' });
       const newHumanColor = gameMode === 'computer'
         ? (humanColor === Player.White ? Player.Black : Player.White)
@@ -208,7 +211,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameState: prevState,
         stateHistory: stateHistory.slice(0, -2),
         selectedCell: null, directionInfos: [], previewDirection: null, shadowPreviewCells: [],
-        isAiThinking: false, hintMove: null, showGameOver: false,
+        isAiThinking: false, hintMove: null, showGameOver: false, showPieRule: false,
       });
     } else {
       const prevState = stateHistory[stateHistory.length - 1];
@@ -216,7 +219,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameState: prevState,
         stateHistory: stateHistory.slice(0, -1),
         selectedCell: null, directionInfos: [], previewDirection: null, shadowPreviewCells: [],
-        hintMove: null, showGameOver: false,
+        hintMove: null, showGameOver: false, showPieRule: false,
       });
     }
   },
@@ -225,10 +228,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   requestHint: () => {
     const { gameState } = get();
     if (isOver(gameState)) return;
-    setTimeout(() => {
-      const result = computeHint(gameState);
-      set({ hintMove: result.move, lastAiResult: result });
-    }, 10);
+    const result = computeHint(gameState);
+    set({ hintMove: result.move, lastAiResult: result });
   },
 
   clearHint: () => set({ hintMove: null }),
@@ -255,36 +256,24 @@ function afterMove(
 
   const { gameMode, humanColor } = get();
 
-    // Pie rule check
-  if (state.phase === Phase.PieResponse) {
-    if (gameMode === 'computer' && state.currentPlayer !== humanColor) {
-      // AI decides pie rule
-      if (shouldSwap(state, get().difficulty)) {
-        const newState = applyMove(state, { kind: 'swap' });
-        set({
-          gameState: newState,
-          humanColor: Player.Black, // AI took White, human is now Black
-          stateHistory: [...get().stateHistory, state],
-        });
-        afterMove(newState, set, get);
-      } else {
-        // AI plays normally — trigger AI move
-        triggerAiMove(set, get);
-      }
-    } else if (gameMode === 'computer' && state.currentPlayer === humanColor) {
-      // Human decides pie rule
+  // In local 2-player mode:
+  if (gameMode === 'local') {
+    // If it's move 2 (Black's first turn), show optional pie rule banner/modal
+    if (state.phase === Phase.PieResponse) {
       set({ showPieRule: true });
+    } else {
+      set({ showPieRule: false });
     }
-    // For local mode, human decides naturally (show modal)
-    if (gameMode === 'local') {
-      set({ showPieRule: true });
-    }
+    // Turn naturally belongs to currentPlayer (Player 2 or Player 1)
     return;
   }
 
-  // AI turn check
-  if (gameMode === 'computer' && !isHumanTurn(state, gameMode, humanColor)) {
-    triggerAiMove(set, get);
+  // In computer mode:
+  if (gameMode === 'computer') {
+    if (!isHumanTurn(state, gameMode, humanColor)) {
+      // It's computer's turn! Trigger fast AI move
+      triggerAiMove(set, get);
+    }
   }
 }
 
@@ -293,10 +282,16 @@ function triggerAiMove(
   get: () => GameStore,
 ) {
   set({ isAiThinking: true });
-  setTimeout(() => {
-    const { gameState, difficulty, stateHistory } = get();
-    if (isOver(gameState)) { set({ isAiThinking: false }); return; }
 
+  // 180ms delay: feels natural & snappy, no freezing
+  setTimeout(() => {
+    const { gameState, difficulty, stateHistory, humanColor } = get();
+    if (isOver(gameState)) {
+      set({ isAiThinking: false });
+      return;
+    }
+
+    // Compute move with fast Negamax
     const result = computeAiMove(gameState, difficulty);
     const newState = applyMove(gameState, result.move);
 
@@ -305,8 +300,11 @@ function triggerAiMove(
       stateHistory: [...stateHistory, gameState],
       isAiThinking: false,
       lastAiResult: result,
+      showPieRule: false,
     });
 
-    afterMove(newState, set, get);
-  }, 100);
+    if (isOver(newState)) {
+      set({ showGameOver: true });
+    }
+  }, 180);
 }
